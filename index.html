@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clickable US Map</title>
+    <style>
+        .map-container {
+            max-width: 900px;
+            margin: 0 auto;
+            font-family: Arial, sans-serif;
+        }
+        .state {
+            fill: #ddd;
+            stroke: #fff;
+            stroke-width: 1px;
+            transition: fill 0.3s;
+            cursor: pointer;
+        }
+        .state:hover {
+            fill: #aad4ff;
+        }
+        .state-active {
+            fill: #4a90e2;
+        }
+        .tooltip {
+            position: absolute;
+            padding: 8px 12px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            border-radius: 4px;
+            font-size: 14px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 100;
+        }
+        .map-title {
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .state-info {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .state-info h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        .state-info p {
+            margin-bottom: 10px;
+        }
+        .state-info a {
+            color: #4a90e2;
+            text-decoration: none;
+        }
+        .state-info a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="map-container">
+        <h1 class="map-title">Interactive US State Map</h1>
+        
+        <div id="map"></div>
+        
+        <div id="stateInfo" class="state-info" style="display: none;">
+            <h2 id="stateName"></h2>
+            <p id="stateDescription"></p>
+            <p><a id="stateLink" href="#" target="_blank">View More Information</a></p>
+        </div>
+        
+        <div id="tooltip" class="tooltip"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <script>
+        // State data - customize this with your own links and descriptions
+        const stateData = {
+            "AL": { name: "Alabama", link: "https://example.com/alabama", description: "Information about Alabama" },
+            "AK": { name: "Alaska", link: "https://example.com/alaska", description: "Information about Alaska" },
+            "AZ": { name: "Arizona", link: "https://example.com/arizona", description: "Information about Arizona" },
+            "AR": { name: "Arkansas", link: "https://example.com/arkansas", description: "Information about Arkansas" },
+            "CA": { name: "California", link: "https://example.com/california", description: "Information about California" },
+            "CO": { name: "Colorado", link: "https://example.com/colorado", description: "Information about Colorado" },
+            "CT": { name: "Connecticut", link: "https://example.com/connecticut", description: "Information about Connecticut" },
+            "DE": { name: "Delaware", link: "https://example.com/delaware", description: "Information about Delaware" },
+            "FL": { name: "Florida", link: "https://example.com/florida", description: "Information about Florida" },
+            "GA": { name: "Georgia", link: "https://example.com/georgia", description: "Information about Georgia" },
+            "HI": { name: "Hawaii", link: "https://example.com/hawaii", description: "Information about Hawaii" },
+            "ID": { name: "Idaho", link: "https://example.com/idaho", description: "Information about Idaho" },
+            "IL": { name: "Illinois", link: "https://example.com/illinois", description: "Information about Illinois" },
+            "IN": { name: "Indiana", link: "https://example.com/indiana", description: "Information about Indiana" },
+            "IA": { name: "Iowa", link: "https://example.com/iowa", description: "Information about Iowa" },
+            "KS": { name: "Kansas", link: "https://example.com/kansas", description: "Information about Kansas" },
+            "KY": { name: "Kentucky", link: "https://example.com/kentucky", description: "Information about Kentucky" },
+            "LA": { name: "Louisiana", link: "https://example.com/louisiana", description: "Information about Louisiana" },
+            "ME": { name: "Maine", link: "https://example.com/maine", description: "Information about Maine" },
+            "MD": { name: "Maryland", link: "https://example.com/maryland", description: "Information about Maryland" },
+            "MA": { name: "Massachusetts", link: "https://example.com/massachusetts", description: "Information about Massachusetts" },
+            "MI": { name: "Michigan", link: "https://example.com/michigan", description: "Information about Michigan" },
+            "MN": { name: "Minnesota", link: "https://example.com/minnesota", description: "Information about Minnesota" },
+            "MS": { name: "Mississippi", link: "https://example.com/mississippi", description: "Information about Mississippi" },
+            "MO": { name: "Missouri", link: "https://example.com/missouri", description: "Information about Missouri" },
+            "MT": { name: "Montana", link: "https://example.com/montana", description: "Information about Montana" },
+            "NE": { name: "Nebraska", link: "https://example.com/nebraska", description: "Information about Nebraska" },
+            "NV": { name: "Nevada", link: "https://example.com/nevada", description: "Information about Nevada" },
+            "NH": { name: "New Hampshire", link: "https://example.com/new-hampshire", description: "Information about New Hampshire" },
+            "NJ": { name: "New Jersey", link: "https://example.com/new-jersey", description: "Information about New Jersey" },
+            "NM": { name: "New Mexico", link: "https://example.com/new-mexico", description: "Information about New Mexico" },
+            "NY": { name: "New York", link: "https://example.com/new-york", description: "Information about New York" },
+            "NC": { name: "North Carolina", link: "https://example.com/north-carolina", description: "Information about North Carolina" },
+            "ND": { name: "North Dakota", link: "https://example.com/north-dakota", description: "Information about North Dakota" },
+            "OH": { name: "Ohio", link: "https://example.com/ohio", description: "Information about Ohio" },
+            "OK": { name: "Oklahoma", link: "https://example.com/oklahoma", description: "Information about Oklahoma" },
+            "OR": { name: "Oregon", link: "https://example.com/oregon", description: "Information about Oregon" },
+            "PA": { name: "Pennsylvania", link: "https://example.com/pennsylvania", description: "Information about Pennsylvania" },
+            "RI": { name: "Rhode Island", link: "https://example.com/rhode-island", description: "Information about Rhode Island" },
+            "SC": { name: "South Carolina", link: "https://example.com/south-carolina", description: "Information about South Carolina" },
+            "SD": { name: "South Dakota", link: "https://example.com/south-dakota", description: "Information about South Dakota" },
+            "TN": { name: "Tennessee", link: "https://example.com/tennessee", description: "Information about Tennessee" },
+            "TX": { name: "Texas", link: "https://example.com/texas", description: "Information about Texas" },
+            "UT": { name: "Utah", link: "https://example.com/utah", description: "Information about Utah" },
+            "VT": { name: "Vermont", link: "https://example.com/vermont", description: "Information about Vermont" },
+            "VA": { name: "Virginia", link: "https://example.com/virginia", description: "Information about Virginia" },
+            "WA": { name: "Washington", link: "https://example.com/washington", description: "Information about Washington" },
+            "WV": { name: "West Virginia", link: "https://example.com/west-virginia", description: "Information about West Virginia" },
+            "WI": { name: "Wisconsin", link: "https://example.com/wisconsin", description: "Information about Wisconsin" },
+            "WY": { name: "Wyoming", link: "https://example.com/wyoming", description: "Information about Wyoming" },
+            "DC": { name: "District of Columbia", link: "https://example.com/district-of-columbia", description: "Information about District of Columbia" }
+        };
+
+        // Set up SVG dimensions
+        const width = 900;
+        const height = 600;
+
+        // Create SVG container
+        const svg = d3.select("#map")
+            .append("svg")
+            .attr("viewBox", `0 0 ${width} ${height}`)
+            .attr("preserveAspectRatio", "xMidYMid meet")
+            .style("width", "100%")
+            .style("height", "auto");
+
+        // Setup the tooltip
+        const tooltip = d3.select("#tooltip");
+        
+        // Load the US map data
+        d3.json("https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json").then(us => {
+            // Convert TopoJSON to GeoJSON
+            const states = topojson.feature(us, us.objects.states);
+            
+            // Set up projection
+            const projection = d3.geoAlbersUsa()
+                .fitSize([width, height], states);
+            
+            // Create path generator
+            const path = d3.geoPath()
+                .projection(projection);
+            
+            // Add states to map
+            svg.selectAll("path")
+                .data(states.features)
+                .enter()
+                .append("path")
+                .attr("class", "state")
+                .attr("d", path)
+                .attr("id", d => `state-${d.id}`)
+                .attr("data-state-id", d => d.id)
+                .on("mouseover", function(event, d) {
+                    // Get state postal code from FIPS code
+                    const stateId = getStateAbbr(d.id);
+                    
+                    if (stateData[stateId]) {
+                        d3.select(this).classed("state-active", true);
+                        tooltip
+                            .style("left", (event.pageX + 15) + "px")
+                            .style("top", (event.pageY - 28) + "px")
+                            .style("opacity", 1)
+                            .text(stateData[stateId].name);
+                    }
+                })
+                .on("mouseout", function(event, d) {
+                    d3.select(this).classed("state-active", false);
+                    tooltip.style("opacity", 0);
+                })
+                .on("click", function(event, d) {
+                    const stateId = getStateAbbr(d.id);
+                    if (stateData[stateId]) {
+                        displayStateInfo(stateId);
+                    }
+                });
+        });
+
+        // Add topojson script
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js';
+        document.head.appendChild(script);
+
+        // Convert FIPS code to state abbreviation
+        function getStateAbbr(fipsCode) {
+            const fipsToState = {
+                "01": "AL", "02": "AK", "04": "AZ", "05": "AR", "06": "CA", "08": "CO", "09": "CT", 
+                "10": "DE", "11": "DC", "12": "FL", "13": "GA", "15": "HI", "16": "ID", "17": "IL", 
+                "18": "IN", "19": "IA", "20": "KS", "21": "KY", "22": "LA", "23": "ME", "24": "MD", 
+                "25": "MA", "26": "MI", "27": "MN", "28": "MS", "29": "MO", "30": "MT", "31": "NE", 
+                "32": "NV", "33": "NH", "34": "NJ", "35": "NM", "36": "NY", "37": "NC", "38": "ND", 
+                "39": "OH", "40": "OK", "41": "OR", "42": "PA", "44": "RI", "45": "SC", "46": "SD", 
+                "47": "TN", "48": "TX", "49": "UT", "50": "VT", "51": "VA", "53": "WA", "54": "WV", 
+                "55": "WI", "56": "WY"
+            };
+            return fipsToState[fipsCode] || "";
+        }
+
+        // Display state information
+        function displayStateInfo(stateId) {
+            const stateInfo = document.getElementById('stateInfo');
+            const stateName = document.getElementById('stateName');
+            const stateDescription = document.getElementById('stateDescription');
+            const stateLink = document.getElementById('stateLink');
+            
+            if (stateData[stateId]) {
+                stateName.textContent = stateData[stateId].name;
+                stateDescription.textContent = stateData[stateId].description;
+                stateLink.href = stateData[stateId].link;
+                stateInfo.style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>
