@@ -33,8 +33,9 @@
             font-size: 14px;
             pointer-events: none;
             opacity: 0;
-            transition: opacity 0.3s;
+            transition: opacity 0.3s, transform 0.2s;
             z-index: 100;
+            white-space: nowrap;
         }
         .map-title {
             text-align: center;
@@ -47,6 +48,7 @@
             border: 1px solid #ddd;
             border-radius: 5px;
             background-color: #f9f9f9;
+            display: none;
         }
         .state-info h2 {
             margin-top: 0;
@@ -67,190 +69,162 @@
 <body>
     <div class="map-container">
         <h1 class="map-title">Interactive US State Map</h1>
-        
         <div id="map"></div>
+        <div id="tooltip" class="tooltip"></div>
         
-        <div id="stateInfo" class="state-info" style="display: none;">
+        <div id="stateInfo" class="state-info">
             <h2 id="stateName"></h2>
             <p id="stateDescription"></p>
             <p><a id="stateLink" href="#" target="_blank">View More Information</a></p>
         </div>
-        
-        <div id="tooltip" class="tooltip"></div>
     </div>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
     <script>
         // State data - customize this with your own links and descriptions
         const stateData = {
-            "AL": { name: "Alabama", link: "https://example.com/alabama", description: "Information about Alabama" },
-            "AK": { name: "Alaska", link: "https://example.com/alaska", description: "Information about Alaska" },
-            "AZ": { name: "Arizona", link: "https://example.com/arizona", description: "Information about Arizona" },
-            "AR": { name: "Arkansas", link: "https://example.com/arkansas", description: "Information about Arkansas" },
-            "CA": { name: "California", link: "https://example.com/california", description: "Information about California" },
-            "CO": { name: "Colorado", link: "https://example.com/colorado", description: "Information about Colorado" },
-            "CT": { name: "Connecticut", link: "https://example.com/connecticut", description: "Information about Connecticut" },
-            "DE": { name: "Delaware", link: "https://example.com/delaware", description: "Information about Delaware" },
-            "FL": { name: "Florida", link: "https://example.com/florida", description: "Information about Florida" },
-            "GA": { name: "Georgia", link: "https://example.com/georgia", description: "Information about Georgia" },
-            "HI": { name: "Hawaii", link: "https://example.com/hawaii", description: "Information about Hawaii" },
-            "ID": { name: "Idaho", link: "https://example.com/idaho", description: "Information about Idaho" },
-            "IL": { name: "Illinois", link: "https://example.com/illinois", description: "Information about Illinois" },
-            "IN": { name: "Indiana", link: "https://example.com/indiana", description: "Information about Indiana" },
-            "IA": { name: "Iowa", link: "https://example.com/iowa", description: "Information about Iowa" },
-            "KS": { name: "Kansas", link: "https://example.com/kansas", description: "Information about Kansas" },
-            "KY": { name: "Kentucky", link: "https://example.com/kentucky", description: "Information about Kentucky" },
-            "LA": { name: "Louisiana", link: "https://example.com/louisiana", description: "Information about Louisiana" },
-            "ME": { name: "Maine", link: "https://example.com/maine", description: "Information about Maine" },
-            "MD": { name: "Maryland", link: "https://example.com/maryland", description: "Information about Maryland" },
-            "MA": { name: "Massachusetts", link: "https://example.com/massachusetts", description: "Information about Massachusetts" },
-            "MI": { name: "Michigan", link: "https://example.com/michigan", description: "Information about Michigan" },
-            "MN": { name: "Minnesota", link: "https://example.com/minnesota", description: "Information about Minnesota" },
-            "MS": { name: "Mississippi", link: "https://example.com/mississippi", description: "Information about Mississippi" },
-            "MO": { name: "Missouri", link: "https://example.com/missouri", description: "Information about Missouri" },
-            "MT": { name: "Montana", link: "https://example.com/montana", description: "Information about Montana" },
-            "NE": { name: "Nebraska", link: "https://example.com/nebraska", description: "Information about Nebraska" },
-            "NV": { name: "Nevada", link: "https://example.com/nevada", description: "Information about Nevada" },
-            "NH": { name: "New Hampshire", link: "https://example.com/new-hampshire", description: "Information about New Hampshire" },
-            "NJ": { name: "New Jersey", link: "https://example.com/new-jersey", description: "Information about New Jersey" },
-            "NM": { name: "New Mexico", link: "https://example.com/new-mexico", description: "Information about New Mexico" },
-            "NY": { name: "New York", link: "https://example.com/new-york", description: "Information about New York" },
-            "NC": { name: "North Carolina", link: "https://example.com/north-carolina", description: "Information about North Carolina" },
-            "ND": { name: "North Dakota", link: "https://example.com/north-dakota", description: "Information about North Dakota" },
-            "OH": { name: "Ohio", link: "https://example.com/ohio", description: "Information about Ohio" },
-            "OK": { name: "Oklahoma", link: "https://example.com/oklahoma", description: "Information about Oklahoma" },
-            "OR": { name: "Oregon", link: "https://example.com/oregon", description: "Information about Oregon" },
-            "PA": { name: "Pennsylvania", link: "https://example.com/pennsylvania", description: "Information about Pennsylvania" },
-            "RI": { name: "Rhode Island", link: "https://example.com/rhode-island", description: "Information about Rhode Island" },
-            "SC": { name: "South Carolina", link: "https://example.com/south-carolina", description: "Information about South Carolina" },
-            "SD": { name: "South Dakota", link: "https://example.com/south-dakota", description: "Information about South Dakota" },
-            "TN": { name: "Tennessee", link: "https://example.com/tennessee", description: "Information about Tennessee" },
-            "TX": { name: "Texas", link: "https://example.com/texas", description: "Information about Texas" },
-            "UT": { name: "Utah", link: "https://example.com/utah", description: "Information about Utah" },
-            "VT": { name: "Vermont", link: "https://example.com/vermont", description: "Information about Vermont" },
-            "VA": { name: "Virginia", link: "https://example.com/virginia", description: "Information about Virginia" },
-            "WA": { name: "Washington", link: "https://example.com/washington", description: "Information about Washington" },
-            "WV": { name: "West Virginia", link: "https://example.com/west-virginia", description: "Information about West Virginia" },
-            "WI": { name: "Wisconsin", link: "https://example.com/wisconsin", description: "Information about Wisconsin" },
-            "WY": { name: "Wyoming", link: "https://example.com/wyoming", description: "Information about Wyoming" },
-            "DC": { name: "District of Columbia", link: "https://example.com/district-of-columbia", description: "Information about District of Columbia" }
+            "Alabama": { link: "https://example.com/alabama", description: "Information about Alabama" },
+            "Alaska": { link: "https://example.com/alaska", description: "Information about Alaska" },
+            "Arizona": { link: "https://example.com/arizona", description: "Information about Arizona" },
+            "Arkansas": { link: "https://example.com/arkansas", description: "Information about Arkansas" },
+            "California": { link: "https://example.com/california", description: "Information about California" },
+            "Colorado": { link: "https://example.com/colorado", description: "Information about Colorado" },
+            "Connecticut": { link: "https://example.com/connecticut", description: "Information about Connecticut" },
+            "Delaware": { link: "https://example.com/delaware", description: "Information about Delaware" },
+            "Florida": { link: "https://example.com/florida", description: "Information about Florida" },
+            "Georgia": { link: "https://example.com/georgia", description: "Information about Georgia" },
+            "Hawaii": { link: "https://example.com/hawaii", description: "Information about Hawaii" },
+            "Idaho": { link: "https://example.com/idaho", description: "Information about Idaho" },
+            "Illinois": { link: "https://example.com/illinois", description: "Information about Illinois" },
+            "Indiana": { link: "https://example.com/indiana", description: "Information about Indiana" },
+            "Iowa": { link: "https://example.com/iowa", description: "Information about Iowa" },
+            "Kansas": { link: "https://example.com/kansas", description: "Information about Kansas" },
+            "Kentucky": { link: "https://example.com/kentucky", description: "Information about Kentucky" },
+            "Louisiana": { link: "https://example.com/louisiana", description: "Information about Louisiana" },
+            "Maine": { link: "https://example.com/maine", description: "Information about Maine" },
+            "Maryland": { link: "https://example.com/maryland", description: "Information about Maryland" },
+            "Massachusetts": { link: "https://example.com/massachusetts", description: "Information about Massachusetts" },
+            "Michigan": { link: "https://example.com/michigan", description: "Information about Michigan" },
+            "Minnesota": { link: "https://example.com/minnesota", description: "Information about Minnesota" },
+            "Mississippi": { link: "https://example.com/mississippi", description: "Information about Mississippi" },
+            "Missouri": { link: "https://example.com/missouri", description: "Information about Missouri" },
+            "Montana": { link: "https://example.com/montana", description: "Information about Montana" },
+            "Nebraska": { link: "https://example.com/nebraska", description: "Information about Nebraska" },
+            "Nevada": { link: "https://example.com/nevada", description: "Information about Nevada" },
+            "New Hampshire": { link: "https://example.com/new-hampshire", description: "Information about New Hampshire" },
+            "New Jersey": { link: "https://example.com/new-jersey", description: "Information about New Jersey" },
+            "New Mexico": { link: "https://example.com/new-mexico", description: "Information about New Mexico" },
+            "New York": { link: "https://example.com/new-york", description: "Information about New York" },
+            "North Carolina": { link: "https://example.com/north-carolina", description: "Information about North Carolina" },
+            "North Dakota": { link: "https://example.com/north-dakota", description: "Information about North Dakota" },
+            "Ohio": { link: "https://example.com/ohio", description: "Information about Ohio" },
+            "Oklahoma": { link: "https://example.com/oklahoma", description: "Information about Oklahoma" },
+            "Oregon": { link: "https://example.com/oregon", description: "Information about Oregon" },
+            "Pennsylvania": { link: "https://example.com/pennsylvania", description: "Information about Pennsylvania" },
+            "Rhode Island": { link: "https://example.com/rhode-island", description: "Information about Rhode Island" },
+            "South Carolina": { link: "https://example.com/south-carolina", description: "Information about South Carolina" },
+            "South Dakota": { link: "https://example.com/south-dakota", description: "Information about South Dakota" },
+            "Tennessee": { link: "https://example.com/tennessee", description: "Information about Tennessee" },
+            "Texas": { link: "https://example.com/texas", description: "Information about Texas" },
+            "Utah": { link: "https://example.com/utah", description: "Information about Utah" },
+            "Vermont": { link: "https://example.com/vermont", description: "Information about Vermont" },
+            "Virginia": { link: "https://example.com/virginia", description: "Information about Virginia" },
+            "Washington": { link: "https://example.com/washington", description: "Information about Washington" },
+            "West Virginia": { link: "https://example.com/west-virginia", description: "Information about West Virginia" },
+            "Wisconsin": { link: "https://example.com/wisconsin", description: "Information about Wisconsin" },
+            "Wyoming": { link: "https://example.com/wyoming", description: "Information about Wyoming" },
+            "District of Columbia": { link: "https://example.com/district-of-columbia", description: "Information about District of Columbia" }
         };
 
-        // Set up SVG dimensions
         const width = 900;
         const height = 600;
-        const mapCenterX = width / 2;
-
-        // Create SVG container
+        
         const svg = d3.select("#map")
             .append("svg")
             .attr("viewBox", `0 0 ${width} ${height}`)
             .attr("preserveAspectRatio", "xMidYMid meet")
             .style("width", "100%")
             .style("height", "auto");
-
-        // Setup the tooltip
+            
         const tooltip = d3.select("#tooltip");
         
-        // Add topojson script
-        const script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js';
-        script.onload = loadMap;
-        document.head.appendChild(script);
-
-        function loadMap() {
-            // Load the US map data
-            d3.json("https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json").then(us => {
-                // Convert TopoJSON to GeoJSON
-                const states = topojson.feature(us, us.objects.states);
-                
-                // Set up projection
-                const projection = d3.geoAlbersUsa()
-                    .fitSize([width, height], states);
-                
-                // Create path generator
-                const path = d3.geoPath()
-                    .projection(projection);
-                
-                // Add states to map
-                svg.selectAll("path")
-                    .data(states.features)
-                    .enter()
-                    .append("path")
-                    .attr("class", "state")
-                    .attr("d", path)
-                    .attr("id", d => `state-${d.id}`)
-                    .attr("data-state-id", d => d.id)
-                    .on("mouseover", function(event, d) {
-                        // Get state postal code from FIPS code
-                        const stateId = getStateAbbr(d.id);
-                        
-                        if (stateData[stateId]) {
-                            d3.select(this).classed("state-active", true);
-                            
-                            // Calculate centroid of the state
-                            const centroid = path.centroid(d);
-                            const stateX = centroid[0];
-                            
-                            // Get tooltip dimensions
-                            const tooltipNode = tooltip.node();
-                            const tooltipWidth = 150; // Approximate width including padding
-                            
-                            // Determine where to position tooltip relative to cursor
-                            // If mouse is on right half of map, position tooltip to left of cursor
-                            // If mouse is on left half of map, position tooltip to right of cursor
-                            // Using mouse position rather than state centroid for more intuitive behavior
-                            const mouseX = event.pageX;
-                            const containerRect = document.querySelector('.map-container').getBoundingClientRect();
-                            const containerCenterX = containerRect.left + containerRect.width / 2;
-                            const xOffset = mouseX > containerCenterX ? -tooltipWidth - 5 : 5;
-                            
-                            tooltip
-                                .style("left", (event.pageX + xOffset) + "px")
-                                .style("top", (event.pageY - 28) + "px")
-                                .style("opacity", 1)
-                                .text(stateData[stateId].name);
-                        }
-                    })
-                    .on("mouseout", function(event, d) {
-                        d3.select(this).classed("state-active", false);
-                        tooltip.style("opacity", 0);
-                    })
-                    .on("click", function(event, d) {
-                        const stateId = getStateAbbr(d.id);
-                        if (stateData[stateId]) {
-                            displayStateInfo(stateId);
-                        }
-                    });
-            });
-        }
-
-        // Convert FIPS code to state abbreviation
-        function getStateAbbr(fipsCode) {
-            const fipsToState = {
-                "01": "AL", "02": "AK", "04": "AZ", "05": "AR", "06": "CA", "08": "CO", "09": "CT", 
-                "10": "DE", "11": "DC", "12": "FL", "13": "GA", "15": "HI", "16": "ID", "17": "IL", 
-                "18": "IN", "19": "IA", "20": "KS", "21": "KY", "22": "LA", "23": "ME", "24": "MD", 
-                "25": "MA", "26": "MI", "27": "MN", "28": "MS", "29": "MO", "30": "MT", "31": "NE", 
-                "32": "NV", "33": "NH", "34": "NJ", "35": "NM", "36": "NY", "37": "NC", "38": "ND", 
-                "39": "OH", "40": "OK", "41": "OR", "42": "PA", "44": "RI", "45": "SC", "46": "SD", 
-                "47": "TN", "48": "TX", "49": "UT", "50": "VT", "51": "VA", "53": "WA", "54": "WV", 
-                "55": "WI", "56": "WY"
-            };
-            return fipsToState[fipsCode] || "";
-        }
-
+        // Track active state
+        let activeState = null;
+        
+        d3.json("https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json").then(us => {
+            const states = topojson.feature(us, us.objects.states);
+            const projection = d3.geoAlbersUsa().fitSize([width, height], states);
+            const path = d3.geoPath().projection(projection);
+            
+            svg.selectAll("path")
+                .data(states.features)
+                .enter()
+                .append("path")
+                .attr("class", "state")
+                .attr("d", path)
+                .attr("id", d => `state-${d.id}`)
+                .on("mouseover", function(event, d) {
+                    const containerRect = document.querySelector('.map-container').getBoundingClientRect();
+                    const mouseX = event.clientX - containerRect.left;
+                    const mouseY = event.clientY - containerRect.top;
+                    
+                    tooltip.text(d.properties.name);
+                    tooltip.style("opacity", 1);
+                    
+                    // Ensure tooltip width is known before positioning
+                    const tooltipWidth = tooltip.node().offsetWidth;
+                    const xOffset = mouseX > containerRect.width / 2 ? -tooltipWidth - 10 : 10;
+                    
+                    tooltip.style("left", `${mouseX + xOffset}px`)
+                           .style("top", `${mouseY - 25}px`);
+                           
+                    // Highlight state on hover
+                    d3.select(this).classed("state-hover", true);
+                })
+                .on("mouseout", function() {
+                    tooltip.style("opacity", 0);
+                    d3.select(this).classed("state-hover", false);
+                })
+                .on("click", function(event, d) {
+                    event.preventDefault();
+                    
+                    // Remove active class from previously selected state
+                    if (activeState) {
+                        d3.select(activeState).classed("state-active", false);
+                    }
+                    
+                    // If the same state is clicked again, clear selection
+                    if (activeState === this) {
+                        activeState = null;
+                        document.getElementById('stateInfo').style.display = 'none';
+                        return;
+                    }
+                    
+                    // Set this state as active
+                    activeState = this;
+                    d3.select(this).classed("state-active", true);
+                    
+                    // Display state information
+                    displayStateInfo(d.properties.name);
+                });
+        });
+        
         // Display state information
-        function displayStateInfo(stateId) {
+        function displayStateInfo(stateName) {
             const stateInfo = document.getElementById('stateInfo');
-            const stateName = document.getElementById('stateName');
+            const stateNameEl = document.getElementById('stateName');
             const stateDescription = document.getElementById('stateDescription');
             const stateLink = document.getElementById('stateLink');
             
-            if (stateData[stateId]) {
-                stateName.textContent = stateData[stateId].name;
-                stateDescription.textContent = stateData[stateId].description;
-                stateLink.href = stateData[stateId].link;
+            if (stateData[stateName]) {
+                stateNameEl.textContent = stateName;
+                stateDescription.textContent = stateData[stateName].description;
+                stateLink.href = stateData[stateName].link;
+                stateInfo.style.display = 'block';
+            } else {
+                stateNameEl.textContent = stateName;
+                stateDescription.textContent = "No additional information available.";
+                stateLink.href = "#";
                 stateInfo.style.display = 'block';
             }
         }
