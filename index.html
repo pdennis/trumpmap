@@ -72,11 +72,7 @@
         <div id="map"></div>
         <div id="tooltip" class="tooltip"></div>
         
-        <div id="stateInfo" class="state-info">
-            <h2 id="stateName"></h2>
-            <p id="stateDescription"></p>
-            <p><a id="stateLink" href="#" target="_blank">View More Information</a></p>
-        </div>
+        <!-- State info panel removed as we're now navigating directly to links -->
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
@@ -148,8 +144,7 @@
             
         const tooltip = d3.select("#tooltip");
         
-        // Track active state
-        let activeState = null;
+        // No need to track active state for direct navigation
         
         d3.json("https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json").then(us => {
             const states = topojson.feature(us, us.objects.states);
@@ -186,48 +181,17 @@
                     d3.select(this).classed("state-hover", false);
                 })
                 .on("click", function(event, d) {
-                    event.preventDefault();
+                    // Get the state name and find its corresponding data
+                    const stateName = d.properties.name;
                     
-                    // Remove active class from previously selected state
-                    if (activeState) {
-                        d3.select(activeState).classed("state-active", false);
+                    // Navigate to the state's link if available
+                    if (stateData[stateName] && stateData[stateName].link) {
+                        window.location.href = stateData[stateName].link;
                     }
-                    
-                    // If the same state is clicked again, clear selection
-                    if (activeState === this) {
-                        activeState = null;
-                        document.getElementById('stateInfo').style.display = 'none';
-                        return;
-                    }
-                    
-                    // Set this state as active
-                    activeState = this;
-                    d3.select(this).classed("state-active", true);
-                    
-                    // Display state information
-                    displayStateInfo(d.properties.name);
                 });
         });
         
-        // Display state information
-        function displayStateInfo(stateName) {
-            const stateInfo = document.getElementById('stateInfo');
-            const stateNameEl = document.getElementById('stateName');
-            const stateDescription = document.getElementById('stateDescription');
-            const stateLink = document.getElementById('stateLink');
-            
-            if (stateData[stateName]) {
-                stateNameEl.textContent = stateName;
-                stateDescription.textContent = stateData[stateName].description;
-                stateLink.href = stateData[stateName].link;
-                stateInfo.style.display = 'block';
-            } else {
-                stateNameEl.textContent = stateName;
-                stateDescription.textContent = "No additional information available.";
-                stateLink.href = "#";
-                stateInfo.style.display = 'block';
-            }
-        }
+        // Function to handle state clicks removed as we now navigate directly
     </script>
 </body>
 </html>
